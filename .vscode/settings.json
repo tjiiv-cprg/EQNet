@@ -1,0 +1,10 @@
+{
+    "python.analysis.extraPaths": [
+        "/home/hyuyao/2024/trackpred_v2/EQNet",
+        "/home/hyuyao/2024/trackpred_v2/shared_libs/3rd_party",
+        "/home/hyuyao/2024/trackpred_v2/shared_libs/3rd_party/fairscale_3e6616",
+        "/home/hyuyao/2024/trackpred_v2/shared_libs/3rd_party/pytorch-image-models_2696ee",
+        "/home/hyuyao/2024/trackpred_v2/shared_libs/3rd_party/torchscale_4d1e0e",
+        "/home/hyuyao/2024/trackpred_v2/shared_libs/3rd_party/qcnet_55cacb4",
+    ]
+}
