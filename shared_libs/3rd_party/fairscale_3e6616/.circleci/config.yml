@@ -1,0 +1,655 @@
+# Python CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-python/ for more details
+#
+# Adopted from
+# https://github.com/facebookresearch/detectron2/blob/master/.circleci/config.yml
+#
+# Pro tip: download circle ci cli to validate the config locally during development.
+
+version: 2.1
+orbs:
+  codecov: codecov/codecov@1.0.2
+# -------------------------------------------------------------------------------------
+# Environments to run the jobs in
+# -------------------------------------------------------------------------------------
+cpu_py37: &cpu_py37
+  docker:
+    - image: circleci/python:3.7
+  resource_class: large
+
+cpu_py38: &cpu_py38
+  docker:
+    - image: circleci/python:3.8
+  resource_class: large
+
+cpu_py39: &cpu_py39
+  docker:
+    - image: circleci/python:3.9
+  resource_class: large
+
+# Here are list of GPU images:
+#   https://circleci.com/docs/2.0/configuration-reference/#available-linux-gpu-images
+gpu: &gpu
+  environment:
+    CUDA_VERSION: "10.2"
+    CUDA_HOME: /usr/local/cuda-10.2
+  machine:
+    image: ubuntu-1604-cuda-10.2:202012-01
+  resource_class: gpu.large
+
+gpu_cu111: &gpu_cu111
+  environment:
+    CUDA_VERSION: "11.1"
+    CUDA_HOME: /usr/local/cuda-11.1
+  machine:
+    image: ubuntu-1604-cuda-11.1:202012-01
+  resource_class: gpu.large
+
+# -------------------------------------------------------------------------------------
+# Re-usable commands
+# -------------------------------------------------------------------------------------
+setup_venv: &setup_venv
+  - run:
+      name: Setup Virtual Env
+      working_directory: ~/
+      command: |
+        python -m venv ~/venv
+        echo ". ~/venv/bin/activate" >> $BASH_ENV
+        . ~/venv/bin/activate
+        python --version
+        which python
+        which pip
+        pip install --upgrade pip
+
+install_dep_160: &install_dep_160
+  - run:
+      name: Install Dependencies with torch 1.6.0
+      command: |
+        # check if we have restored venv cache (/home/circleci/venv) correctly, if so, just skip
+        if [ -f /home/circleci/venv/check_version.py ]; then python /home/circleci/venv/check_version.py torch eq 1.6 && exit 0; fi
+        # start installing
+        pip install --progress-bar off torch==1.6.0+cu101 torchvision==0.7.0+cu101 -f https://download.pytorch.org/whl/torch_stable.html
+        pip install --progress-bar off -r requirements-test.txt
+        pip install --progress-bar off -r requirements-benchmarks.txt
+        python -c 'import torch; print("Torch version:", torch.__version__)'
+        python -c 'import torch; assert torch.__version__.split(".")[:2] == ["1", "6"], "wrong torch version"'
+        python -m torch.utils.collect_env
+        wget -O /home/circleci/venv/check_version.py https://raw.githubusercontent.com/min-xu-ai/check_verion/main/check_version.py
+
+install_dep_171: &install_dep_171
+  - run:
+      name: Install Dependencies with torch 1.7.1
+      command: |
+        # check if we have restored venv cache (/home/circleci/venv) correctly, if so, just skip
+        if [ -f /home/circleci/venv/check_version.py ]; then python /home/circleci/venv/check_version.py torch eq 1.7 && exit 0; fi
+        # start installing
+        pip install --progress-bar off torch==1.7.1+cu110 torchvision==0.8.2+cu110 -f https://download.pytorch.org/whl/torch_stable.html
+        pip install --progress-bar off -r requirements-test.txt
+        pip install --progress-bar off -r requirements-benchmarks.txt
+        python -c 'import torch; print("Torch version:", torch.__version__)'
+        python -c 'import torch; assert torch.__version__.split(".")[:2] == ["1", "7"], "wrong torch version"'
+        python -m torch.utils.collect_env
+        wget -O /home/circleci/venv/check_version.py https://raw.githubusercontent.com/min-xu-ai/check_verion/main/check_version.py
+
+install_dep_181: &install_dep_181
+  - run:
+      name: Install Dependencies with torch 1.8.1
+      command: |
+        # check if we have restored venv cache (/home/circleci/venv) correctly, if so, just skip
+        if [ -f /home/circleci/venv/check_version.py ]; then python /home/circleci/venv/check_version.py torch eq 1.8 && exit 0; fi
+        # start installing
+        pip install --progress-bar off torch==1.8.1+cu101 torchvision==0.9.1+cu101 -f https://download.pytorch.org/whl/torch_stable.html
+        pip install --progress-bar off -r requirements-test.txt
+        pip install --progress-bar off -r requirements-benchmarks.txt
+        python -c 'import torch; print("Torch version:", torch.__version__)'
+        python -c 'import torch; assert torch.__version__.split(".")[:2] == ["1", "8"], "wrong torch version"'
+        python -m torch.utils.collect_env
+        wget -O /home/circleci/venv/check_version.py https://raw.githubusercontent.com/min-xu-ai/check_verion/main/check_version.py
+
+install_dep_190: &install_dep_190
+  - run:
+      name: Install Dependencies with torch 1.9.0
+      command: |
+        # check if we have restored venv cache (/home/circleci/venv) correctly, if so, just skip
+        if [ -f /home/circleci/venv/check_version.py ]; then python /home/circleci/venv/check_version.py torch eq 1.8 && exit 0; fi
+        # start installing
+        pip install --progress-bar off install torch==1.9.0+cu102 torchvision==0.10.0+cu102 -f https://download.pytorch.org/whl/torch_stable.html
+        pip install --progress-bar off -r requirements-test.txt
+        pip install --progress-bar off -r requirements-benchmarks.txt
+        python -c 'import torch; print("Torch version:", torch.__version__)'
+        python -c 'import torch; assert torch.__version__.split(".")[:2] == ["1", "9"], "wrong torch version"'
+        python -m torch.utils.collect_env
+        wget -O /home/circleci/venv/check_version.py https://raw.githubusercontent.com/min-xu-ai/check_verion/main/check_version.py
+
+install_repo: &install_repo
+  - run:
+      name: Install Repository
+      command: |
+        pip install .
+        # Test import.
+        python -c 'import sys; sys.path = sys.path[1:]; import fairscale'
+
+run_isort: &run_isort
+   - run:
+       name: Run Linter (isort)
+       command: |
+         isort . --check
+
+run_black: &run_black
+   - run:
+       name: Run Linter (black)
+       command: |
+         black --check .
+
+run_mypy: &run_mypy
+   - run:
+       name: Run type-checking (mypy)
+       command: |
+         mypy --ignore-missing-imports --scripts-are-modules --pretty .
+
+run_flake8: &run_flake8
+  - run:
+      name: Run Linter (flake8)
+      command: |
+        flake8 --show-source --statistics
+
+check_test_list: &check_test_list
+  - run:
+      name: Verify that unit test list files are correct
+      command: |
+        bash ./tests/ci_test_list_check.sh
+
+
+upload_coverage: &upload_coverage
+  - codecov/upload:
+      file: 'coverage.xml'
+      token: $CODECOV_TOKEN
+
+run_offload_benchmark: &run_offload_benchmark
+  - run:
+      name: Run Offload Benchmark
+      command: |
+        python benchmarks/experimental/offload.py --checkpoint_activation
+
+run_pipe_benchmark: &run_pipe_benchmark
+  - run:
+      name: Run Pipe Benchmark
+      command: |
+        python benchmarks/pipe.py
+
+run_oss_benchmark: &run_oss_benchmark
+  - run:
+      name: Run OSS Benchmark
+      command: |
+        python benchmarks/oss.py --world_size 4 --epochs 2
+        python benchmarks/oss.py --check_regression --world_size 4 --optim_type oss_sharded_ddp
+
+run_oss_gloo: &run_oss_gloo
+  - run:
+      name: Run OSS with Gloo
+      command: |
+        python benchmarks/oss.py --gloo --optim_type oss_ddp --epochs 2
+        python benchmarks/oss.py --gloo --optim_type oss_sharded_ddp --epochs 2
+
+run_oss_amp: &run_oss_amp
+   - run:
+       name: Run OSS with Torch AMP
+       command: |
+         python benchmarks/oss.py --amp --epochs 3 --optim_type oss_sharded_ddp
+
+run_oss_for_each: &run_oss_for_each
+   - run:
+       name: Run OSS with Torch AMP and ForEach optmizer
+       command: |
+         python benchmarks/oss.py --amp --epochs 3 --optim_type oss_sharded_ddp --multi_tensor_optim
+
+
+run_doc_build: &run_doc_build
+   - run:
+       name: Testing doc build
+       command: |
+         cd docs
+         pip install --progress-bar off -r requirements.txt
+         make help
+         make singlehtml | tee make.out
+         ! tail make.out | grep -q warning
+
+# This is an alias to run all unit tests possible on a platform.
+run_unittests: &run_unittests
+   - run:
+       name: Run all unit tests.
+       # We run all and not stopping on failure on CPU since docker time is cheaper.
+       command: |
+         pytest --junitxml=test-results/junit.xml --verbose --timeout 60 --cov-report=xml --cov=./
+
+commands:
+
+   # This is a command (like a function) that run tests from a given test_list_file.
+   # If test_list_file is not given, this results in an error.
+   run_unittests_from_list:
+     parameters:
+       test_list_file:
+         type: string
+         default: "/dev/non_exist"  # Default to error out
+     steps:
+       - run:
+           name: Run Unit Tests
+           command: |
+             if [ ! -f <<parameters.test_list_file>> ]; then exit 1; fi
+             pytest --junitxml=test-results/junit.xml --verbose --timeout 60 --cov-report=xml --cov=./ `cat <<parameters.test_list_file>>`
+
+   setup_pyenv:
+     parameters:
+       version:
+         type: string
+     steps:
+       - run:
+           name: Setup pyenv
+           command: |
+             git clone git://github.com/pyenv/pyenv-update.git $(pyenv root)/plugins/pyenv-update
+             pyenv update
+             pyenv install -f <<parameters.version>>
+             pyenv global <<parameters.version>>
+
+# -------------------------------------------------------------------------------------
+# Jobs to run
+# -------------------------------------------------------------------------------------
+
+jobs:
+  cpu_tests_py37:
+    <<: *cpu_py37
+
+    working_directory: ~/fairscale
+
+    steps:
+      - checkout
+      - <<: *check_test_list
+      - <<: *setup_venv
+
+      # Cache the venv directory that contains dependencies
+      - restore_cache:
+          keys:
+            - cache-key-cpu-py37-181-{{ checksum "setup.py"}}-{{ checksum "requirements-test.txt"}}
+
+      - <<: *install_dep_181
+
+      - save_cache:
+          paths:
+            - ~/venv
+          key: cache-key-cpu-py37-181-{{ checksum "setup.py"}}-{{ checksum "requirements-test.txt"}}
+
+      - <<: *install_repo
+
+      - <<: *run_isort
+      - <<: *run_black
+      - <<: *run_mypy
+      - <<: *run_flake8
+      - <<: *run_unittests
+      - <<: *run_doc_build
+
+      - store_test_results:
+          path: test-results
+
+  cpu_tests_py38:
+    <<: *cpu_py38
+
+    working_directory: ~/fairscale
+
+    steps:
+      - checkout
+      - <<: *check_test_list
+      - <<: *setup_venv
+
+      # Cache the venv directory that contains dependencies
+      - restore_cache:
+          keys:
+            - cache-key-cpu-py38-181-{{ checksum "setup.py"}}-{{ checksum "requirements-test.txt"}}
+      - <<: *install_dep_181
+
+      - save_cache:
+          paths:
+            - ~/venv
+          key: cache-key-cpu-py38-181-{{ checksum "setup.py"}}-{{ checksum "requirements-test.txt"}}
+
+      - <<: *install_repo
+
+      - <<: *run_isort
+      - <<: *run_black
+      - <<: *run_mypy
+      - <<: *run_flake8
+      - <<: *run_unittests
+      - <<: *run_doc_build
+
+      - store_test_results:
+          path: test-results
+
+  cpu_tests_py39:
+    <<: *cpu_py39
+
+    working_directory: ~/fairscale
+
+    steps:
+      - checkout
+      - <<: *check_test_list
+      - <<: *setup_venv
+
+      # Cache the venv directory that contains dependencies
+      - restore_cache:
+          keys:
+            - cache-key-cpu-py39-181-0-{{ checksum "setup.py"}}-{{ checksum "requirements-test.txt"}}
+
+      - <<: *install_dep_181
+
+      - save_cache:
+          paths:
+            - ~/venv
+          key: cache-key-cpu-py39-181-0-{{ checksum "setup.py"}}-{{ checksum "requirements-test.txt"}}
+
+      - <<: *install_repo
+
+      - <<: *run_isort
+      - <<: *run_black
+      - <<: *run_mypy
+      - <<: *run_flake8
+      - <<: *run_unittests
+      - <<: *run_doc_build
+
+      - store_test_results:
+          path: test-results
+
+
+  gpu_tests_160:
+    parameters:
+      test_list_file:
+        type: string
+        default: "/dev/non_exist"
+
+    <<: *gpu
+
+    working_directory: ~/fairscale
+
+    steps:
+      - checkout
+
+      - run: nvidia-smi
+
+      - setup_pyenv:
+          version: 3.7.0
+
+      - <<: *setup_venv
+
+      # Cache the venv directory that contains dependencies
+      - restore_cache:
+          keys:
+            - cache-key-gpu-160-101-{{ checksum "setup.py"}}-{{ checksum "requirements-test.txt"}}
+
+      - <<: *install_dep_160
+
+      - save_cache:
+          paths:
+            - ~/venv
+          key: cache-key-gpu-160-101-{{ checksum "setup.py"}}-{{ checksum "requirements-test.txt"}}
+
+      - <<: *install_repo
+
+      - run_unittests_from_list:
+          test_list_file: <<parameters.test_list_file>>
+
+      - store_test_results:
+          path: test-results
+
+      - <<: *upload_coverage
+
+  gpu_tests_171:
+    parameters:
+      test_list_file:
+        type: string
+        default: "/dev/non_exist"
+
+    <<: *gpu_cu111
+
+    working_directory: ~/fairscale
+
+    steps:
+      - checkout
+
+      - run: nvidia-smi
+
+      # Run this to make sure we use python3 from the system.
+      - setup_pyenv:
+          version: 3.8.6
+
+      - <<: *setup_venv
+
+      # Cache the venv directory that contains dependencies
+      - restore_cache:
+          keys:
+            - cache-key-gpu-171-110-{{ checksum "setup.py"}}-{{ checksum "requirements-test.txt"}}
+
+      - <<: *install_dep_171
+
+      - save_cache:
+          paths:
+            - ~/venv
+          key: cache-key-gpu-171-110-{{ checksum "setup.py"}}-{{ checksum "requirements-test.txt"}}
+
+      - <<: *install_repo
+
+      - run_unittests_from_list:
+          test_list_file: <<parameters.test_list_file>>
+
+      - store_test_results:
+          path: test-results
+
+      - <<: *upload_coverage
+
+  gpu_tests_181:
+    parameters:
+      test_list_file:
+        type: string
+        default: "/dev/non_exist"
+
+    <<: *gpu
+
+    working_directory: ~/fairscale
+
+    steps:
+      - checkout
+
+      - run: nvidia-smi
+
+      # Run this to make sure we use python3 from the system.
+      - setup_pyenv:
+          version: 3.7.0
+
+      - <<: *setup_venv
+
+      # Cache the venv directory that contains dependencies
+      - restore_cache:
+          keys:
+            - cache-key-gpu-181-101-{{ checksum "setup.py"}}-{{ checksum "requirements-test.txt"}}
+
+      - <<: *install_dep_181
+
+      - save_cache:
+          paths:
+            - ~/venv
+          key: cache-key-gpu-181-101-{{ checksum "setup.py"}}-{{ checksum "requirements-test.txt"}}
+
+      - <<: *install_repo
+
+      - run_unittests_from_list:
+          test_list_file: <<parameters.test_list_file>>
+
+      - store_test_results:
+          path: test-results
+
+      - <<: *upload_coverage
+
+  gpu_tests_190:
+    parameters:
+      test_list_file:
+        type: string
+        default: "/dev/non_exist"
+
+    <<: *gpu
+
+    working_directory: ~/fairscale
+
+    steps:
+      - checkout
+
+      - run: nvidia-smi
+
+      # Run this to make sure we use python3 from the system.
+      - setup_pyenv:
+          version: 3.7.0
+
+      - <<: *setup_venv
+
+      # Cache the venv directory that contains dependencies
+      - restore_cache:
+          keys:
+            - cache-key-gpu-190-101-{{ checksum "setup.py"}}-{{ checksum "requirements-test.txt"}}
+
+      - <<: *install_dep_190
+
+      - save_cache:
+          paths:
+            - ~/venv
+          key: cache-key-gpu-190-101-{{ checksum "setup.py"}}-{{ checksum "requirements-test.txt"}}
+
+      - <<: *install_repo
+
+      - run_unittests_from_list:
+          test_list_file: <<parameters.test_list_file>>
+
+      - store_test_results:
+          path: test-results
+
+  benchmarks_1:
+    <<: *gpu
+
+    working_directory: ~/fairscale
+
+    steps:
+      - checkout
+
+      - run: nvidia-smi
+
+      - setup_pyenv:
+          version: 3.7.0
+
+      - <<: *setup_venv
+
+      # Cache the venv directory that contains dependencies
+      - restore_cache:
+          keys:
+            - cache-key-benchmarks-181-101-{{ checksum "setup.py"}}-{{ checksum "requirements-test.txt"}}
+
+      # Cache the MNIST directory that contains benchmark data
+      - restore_cache:
+          keys:
+            - cache-key-benchmark-MNIST-{{ checksum "benchmarks/datasets/mnist.py"}}
+
+      - <<: *install_dep_181
+
+      - save_cache:
+          paths:
+            - ~/venv
+          key: cache-key-benchmarks-181-101-{{ checksum "setup.py"}}-{{ checksum "requirements-test.txt"}}
+
+      - <<: *install_repo
+
+      - <<: *run_pipe_benchmark
+
+      - <<: *run_offload_benchmark
+
+      - <<: *run_oss_amp
+
+      - <<: *run_oss_for_each
+
+      - <<: *run_oss_gloo
+
+      - save_cache:
+          paths:
+            - /tmp/MNIST
+          key: cache-key-benchmark-MNIST-{{ checksum "benchmarks/datasets/mnist.py"}}
+
+  benchmarks_2:
+    <<: *gpu
+
+    working_directory: ~/fairscale
+
+    steps:
+      - checkout
+
+      - run: nvidia-smi
+
+      - setup_pyenv:
+          version: 3.7.0
+
+      - <<: *setup_venv
+
+      # Cache the venv directory that contains dependencies
+      - restore_cache:
+          keys:
+            - cache-key-benchmarks-181-101-{{ checksum "setup.py"}}-{{ checksum "requirements-test.txt"}}
+
+
+      # Cache the MNIST directory that contains benchmark data
+      - restore_cache:
+          keys:
+            - cache-key-benchmark-MNIST-{{ checksum "benchmarks/datasets/mnist.py"}}
+
+      - <<: *install_dep_181
+
+      - save_cache:
+          paths:
+            - ~/venv
+          key: cache-key-benchmarks-181-101-{{ checksum "setup.py"}}-{{ checksum "requirements-test.txt"}}
+
+      - <<: *install_repo
+
+      - <<: *run_oss_benchmark
+
+      - save_cache:
+          paths:
+            - /tmp/MNIST
+          key: cache-key-benchmark-MNIST-{{ checksum "benchmarks/datasets/mnist.py"}}
+
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - cpu_tests_py37
+      - cpu_tests_py38
+      - cpu_tests_py39
+      - gpu_tests_160:
+          test_list_file: tests/ci_test_list_1.txt
+      - gpu_tests_171:
+          test_list_file: tests/ci_test_list_1.txt
+      - gpu_tests_181:
+          test_list_file: tests/ci_test_list_1.txt
+      - gpu_tests_190:
+          test_list_file: tests/ci_test_list_1.txt
+      - gpu_tests_160:
+          test_list_file: tests/ci_test_list_2.txt
+      - gpu_tests_171:
+          test_list_file: tests/ci_test_list_2.txt
+      - gpu_tests_181:
+          test_list_file: tests/ci_test_list_2.txt
+      - gpu_tests_190:
+          test_list_file: tests/ci_test_list_2.txt
+      - gpu_tests_160:
+          test_list_file: tests/ci_test_list_3.txt
+      - gpu_tests_171:
+          test_list_file: tests/ci_test_list_3.txt
+      - gpu_tests_181:
+          test_list_file: tests/ci_test_list_3.txt
+      - gpu_tests_190:
+          test_list_file: tests/ci_test_list_3.txt
+      - benchmarks_1
+      - benchmarks_2
