@@ -32,7 +32,7 @@ from EQNet.retention_block import RetentionTempEncoderBlock
 
 # from trace_commentor import Commentor
 
-class QCNetAgentEncoder(nn.Module):
+class EQNetAgentEncoder(nn.Module):
 
     def __init__(self,
                  dataset: str,
@@ -47,7 +47,7 @@ class QCNetAgentEncoder(nn.Module):
                  num_heads: int,
                  head_dim: int,
                  dropout: float) -> None:
-        super(QCNetAgentEncoder, self).__init__()
+        super(EQNetAgentEncoder, self).__init__()
         self.dataset = dataset
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
@@ -101,7 +101,6 @@ class QCNetAgentEncoder(nn.Module):
         # )
         self.apply(weight_init)
 
-    # @Commentor("qcnet_agent_encoder.cmt.py")
     def forward(self,
                 data: HeteroData,
                 map_enc: Mapping[str, torch.Tensor]) -> Dict[str, torch.Tensor]:

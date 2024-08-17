@@ -10,14 +10,12 @@ conda activate RAMoPred
 
 # export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
 # export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
-export USE_MEMEFF_ATT=False
 export MAX_EPOCHS=16
 export T_MAX=16
 export INITIAL_LR=5e-4
 export GRAD_ACC=1
 
 if [[ $1 == "-c" ]]; then # CPU debug mode
-    export USE_MEMEFF_ATT=False
     export CUDA_VISIBLE_DEVICES=
     NUM_DEVICES=1
     BATCH_SIZE=2
@@ -42,7 +40,7 @@ else
     RECIPE=$1
 fi
 
-python EQNet/train_qcnet_shq.py \
+python EQNet/train_eqnet.py \
     --train_batch_size $BATCH_SIZE --val_batch_size $BATCH_SIZE --test_batch_size $BATCH_SIZE --devices $NUM_DEVICES \
     --max_epochs $MAX_EPOCHS --T_max $T_MAX --lr 5e-4 --num_workers $NUM_WORKERS \
     --dataset argoverse_v2 --num_historical_steps 50 --num_future_steps 60 --num_recurrent_steps 3 \

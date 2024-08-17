@@ -13,7 +13,7 @@ from pytorch_lightning.strategies import DDPStrategy
 from lightning.pytorch.loggers import TensorBoardLogger
 
 from EQNet.argoverse_v2_datamodule import ArgoverseV2DataModule
-from EQNet.qcnet import QCNet
+from eqnet import EQNet
 from EQNet import data
 from shared_libs.eec_parse import check_git_status_and_get_branch
 
@@ -43,10 +43,10 @@ if __name__ == '__main__':
     parser.add_argument('--accelerator', type=str, default='auto')
     parser.add_argument('--devices', type=int, required=True)
     parser.add_argument('--max_epochs', type=int, default=64)
-    parser.add_argument('--load_pretrained_qcnet', type=str, default=None)
+    # parser.add_argument('--load_pretrained_qcnet', type=str, default=None)
     parser.add_argument('--load_pretrained', type=str, default=None)
     parser.add_argument('--resume', type=str, default=None)
-    QCNet.add_model_specific_args(parser)
+    EQNet.add_model_specific_args(parser)
     args = parser.parse_args()
 
     args.submission_dir = LOGDIR
@@ -60,11 +60,11 @@ if __name__ == '__main__':
     print(args)
 
     if args.load_pretrained:
-        model = QCNet.load_from_checkpoint(args.load_pretrained, **vars(args), strict=False)
+        model = EQNet.load_from_checkpoint(args.load_pretrained, **vars(args), strict=False)
     else:
-        model = QCNet(**vars(args))
-        if args.load_pretrained_qcnet:
-            model.load_pretrained_qcnet(args.load_pretrained_qcnet)
+        model = EQNet(**vars(args))
+        # if args.load_pretrained_qcnet:
+        #     model.load_pretrained_qcnet(args.load_pretrained_qcnet)
 
     model_checkpoint = ModelCheckpoint(monitor='val_minFDE', save_top_k=5, mode='min')
     lr_monitor = LearningRateMonitor(logging_interval='epoch')

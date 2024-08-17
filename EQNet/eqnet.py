@@ -31,8 +31,8 @@ from metrics import minADE
 from metrics import minAHE
 from metrics import minFDE
 from metrics import minFHE
-from EQNet.qcnet_decoder import QCNetDecoder
-from EQNet.qcnet_encoder import QCNetEncoder
+from eqnet_decoder import EQNetDecoder
+from eqnet_encoder import EQNetEncoder
 
 
 try:
@@ -43,7 +43,7 @@ except ImportError:
 from torch_geometric.data.collate import collate
 from shared_libs.oom_recover_lightning_module import OOMRecoverable
 
-class QCNet(OOMRecoverable):
+class EQNet(OOMRecoverable):
 
     def __init__(self,
                  dataset: str,
@@ -129,7 +129,7 @@ class QCNet(OOMRecoverable):
         self.brier_loss_enabled = brier_loss
         self.refine = refine
 
-        self.encoder = QCNetEncoder(
+        self.encoder = EQNetEncoder(
             dataset=dataset,
             input_dim=input_dim,
             hidden_dim=hidden_dim,
@@ -145,7 +145,7 @@ class QCNet(OOMRecoverable):
             head_dim=head_dim,
             dropout=dropout,
         )
-        self.decoder = QCNetDecoder(
+        self.decoder = EQNetDecoder(
             dataset=dataset,
             input_dim=input_dim,
             hidden_dim=hidden_dim,
@@ -480,7 +480,7 @@ class QCNet(OOMRecoverable):
 
     @staticmethod
     def add_model_specific_args(parent_parser):
-        parser = parent_parser.add_argument_group('QCNet')
+        parser = parent_parser.add_argument_group('EQNet')
         parser.add_argument('--dataset', type=str, required=True)
         parser.add_argument('--input_dim', type=int, default=2)
         parser.add_argument('--hidden_dim', type=int, default=128)

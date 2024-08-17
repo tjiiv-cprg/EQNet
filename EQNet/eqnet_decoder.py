@@ -36,7 +36,7 @@ from collections.abc import Mapping
 # from trace_commentor import Commentor, silent
 
 
-class QCNetDecoder(nn.Module):
+class EQNetDecoder(nn.Module):
 
     def __init__(self, dataset: str, input_dim: int, hidden_dim: int, output_dim: int,
                  output_head: bool, num_historical_steps: int, num_future_steps: int,
@@ -44,7 +44,7 @@ class QCNetDecoder(nn.Module):
                  pl2m_radius: float, a2m_radius: float, num_freq_bands: int,
                  num_layers: int, num_heads: int, head_dim: int,
                  dropout: float, detach_m: bool, refine: bool) -> None:
-        super(QCNetDecoder, self).__init__()
+        super(EQNetDecoder, self).__init__()
         self.dataset = dataset
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
@@ -195,11 +195,7 @@ class QCNetDecoder(nn.Module):
                 self.to_conc_refine_head = None
         self.to_pi = MLPLayer(input_dim=hidden_dim, hidden_dim=hidden_dim, output_dim=1)
         self.apply(weight_init)
-        
-    # @Commentor("qcnet_plug_in/qcnet_shq/qcnet_decoder_cmtor.py", fmt=[
-    #     (Mapping, silent),
-    #     (HeteroData, silent),
-    # ])
+
     def forward(self, data: HeteroData,
                 scene_enc: Mapping[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         A = data['agent']['num_nodes']

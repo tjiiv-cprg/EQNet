@@ -17,11 +17,11 @@ import torch
 import torch.nn as nn
 from torch_geometric.data import HeteroData
 
-from EQNet.qcnet_agent_encoder import QCNetAgentEncoder
-from modules.qcnet_map_encoder import QCNetMapEncoder
+from eqnet_agent_encoder import EQNetAgentEncoder
+from qcnet_55cacb4.modules.qcnet_map_encoder import QCNetMapEncoder
 
 
-class QCNetEncoder(nn.Module):
+class EQNetEncoder(nn.Module):
 
     def __init__(self,
                  dataset: str,
@@ -38,7 +38,7 @@ class QCNetEncoder(nn.Module):
                  num_heads: int,
                  head_dim: int,
                  dropout: float) -> None:
-        super(QCNetEncoder, self).__init__()
+        super(EQNetEncoder, self).__init__()
         self.map_encoder = QCNetMapEncoder(
             dataset=dataset,
             input_dim=input_dim,
@@ -51,7 +51,7 @@ class QCNetEncoder(nn.Module):
             head_dim=head_dim,
             dropout=dropout,
         )
-        self.agent_encoder = QCNetAgentEncoder(
+        self.agent_encoder = EQNetAgentEncoder(
             dataset=dataset,
             input_dim=input_dim,
             hidden_dim=hidden_dim,
