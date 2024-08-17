@@ -6,5 +6,6 @@
         "/home/hyuyao/2024/trackpred_v2/shared_libs/3rd_party/pytorch-image-models_2696ee",
         "/home/hyuyao/2024/trackpred_v2/shared_libs/3rd_party/torchscale_4d1e0e",
         "/home/hyuyao/2024/trackpred_v2/shared_libs/3rd_party/qcnet_55cacb4",
-    ]
+    ],
+    "python.defaultInterpreterPath": "/home/hyuyao/miniconda3/envs/RAMoPred/bin/python"
 }
