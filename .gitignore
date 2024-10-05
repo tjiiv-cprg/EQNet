@@ -151,3 +151,11 @@ evalai-cli
 online_repr
 .pinfrac
 checkpoints
+data
+outputs
+tmp
+docs
+wandb
+
+shared_libs/3rd_party/scenarionet_c6775d7/scenarionet/tests/
+shared_libs/3rd_party/UniTraj/
