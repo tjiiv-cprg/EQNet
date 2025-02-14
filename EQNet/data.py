@@ -1,10 +1,13 @@
-import os
+import yaml
 import random
 
 
 def get_argoverse_v2_root(machine:str):
-    from shared_libs.eec_parse import parse_markdown_yaml_metadata
-    ARGOVERSE_V2_ROOT = parse_markdown_yaml_metadata("EEC.md")['machines'][machine]['argoverse_v2_dataroot']
+    with open("EQNet/env_config.yml", "r") as f:
+        config = yaml.safe_load(f)
+    if machine not in config['machines']:
+        raise ValueError(f"Machine {machine} not found in EQNet/env_config.yml")
+    ARGOVERSE_V2_ROOT = config['machines'][machine]['argoverse_v2_dataroot']
     return ARGOVERSE_V2_ROOT
 
 

@@ -1,5 +1,5 @@
-from shared_libs.eec_parse import extend_extra_sys_path
-extend_extra_sys_path("EQNet/EEC.md")
+from shared_libs.env_config_parse import extend_extra_sys_path
+extend_extra_sys_path("EQNet/env_config.yml")
 
 import argparse
 import time
@@ -220,7 +220,7 @@ def main():
     argp.add_argument("mode", choices=["bench", "display"])
     argp.add_argument("logjsonfile")
     argp.add_argument("--saveimg", default="results/DIRTY/bench.png")
-    argp.add_argument("--machine", default="3090-C")
+    argp.add_argument("--machine", default="default")
     args = argp.parse_args()
 
     if args.mode == "bench":
@@ -319,7 +319,7 @@ def main():
 
 def debug():
     argp = argparse.ArgumentParser()
-    argp.add_argument("--machine", default="3090-C")
+    argp.add_argument("--machine", default="default")
     args = argp.parse_args()
 
     # dataset
@@ -348,5 +348,5 @@ def debug():
 
 
 if __name__ == "__main__":
-    # find_most_busy_scene(get_argoverse_v2_dataset_for_qcnet("3090-C", "val"))
+    # find_most_busy_scene(get_argoverse_v2_dataset_for_qcnet("default", "val"))
     main()

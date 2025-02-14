@@ -4,8 +4,9 @@ ulimit -SHn 51200
 ulimit -s unlimited
 
 # eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
-source ~/miniconda3/etc/profile.d/conda.sh
-conda activate RAMoPred
+# source ~/miniconda3/etc/profile.d/conda.sh
+# conda activate py310rust
+# source .venv/bin/activate
 
 
 # export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
@@ -27,11 +28,11 @@ elif [[ $1 == "-d" ]]; then # GPU debug mode
     NUM_WORKERS=0
 elif [[ $1 == "-m" ]]; then # manual mode
     export PYTHONOPTIMIZE=1
-    NUM_DEVICES=2
-    BATCH_SIZE=16
+    NUM_DEVICES=2  # 2 GPUs
+    BATCH_SIZE=16  # 16 per GPU
     NUM_WORKERS=8
-    T_MAX=64
     MAX_EPOCHS=64
+    T_MAX=64  # for lr scheduler, keep same as max_epochs
 elif [ -z $1 ]; then
     echo "execution mode is mandatory."
     exit 1
@@ -45,4 +46,4 @@ python EQNet/train_eqnet.py \
     --max_epochs $MAX_EPOCHS --T_max $T_MAX --lr 5e-4 --num_workers $NUM_WORKERS \
     --dataset argoverse_v2 --num_historical_steps 50 --num_future_steps 60 --num_recurrent_steps 3 \
     --pl2pl_radius 150 --time_span 10 --pl2a_radius 50 --a2a_radius 50 --num_t2m_steps 30 --pl2m_radius 150 --a2m_radius 150 --grad_acc $GRAD_ACC \
-    --brier_loss --refine --machine 3090-C
+    --brier_loss --refine --machine default

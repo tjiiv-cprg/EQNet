@@ -1,6 +1,6 @@
----
-conda_env_name: RAMoPred
-conda_yml_file: EQNet/conda/env.yml
+machines:
+    default:
+        argoverse_v2_dataroot: /mnt/data/argoverse2
 extra_sys_path:
     - EQNet
     - shared_libs/3rd_party
@@ -8,4 +8,3 @@ extra_sys_path:
     - shared_libs/3rd_party/fairscale_3e6616
     - shared_libs/3rd_party/pytorch-image-models_2696ee
     - shared_libs/3rd_party/torchscale_4d1e0e
----

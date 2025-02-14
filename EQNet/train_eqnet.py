@@ -1,5 +1,5 @@
-from shared_libs.eec_parse import extend_extra_sys_path
-extend_extra_sys_path("EQNet/EEC.md")
+from shared_libs.env_config_parse import extend_extra_sys_path
+extend_extra_sys_path("EQNet/env_config.yml")
 
 import torch
 torch.set_float32_matmul_precision('medium')
@@ -15,7 +15,7 @@ from lightning.pytorch.loggers import TensorBoardLogger
 from EQNet.argoverse_v2_datamodule import ArgoverseV2DataModule
 from eqnet import EQNet
 from EQNet import data
-from shared_libs.eec_parse import check_git_status_and_get_branch
+from shared_libs.env_config_parse import check_git_status_and_get_branch
 
 BRANCH = check_git_status_and_get_branch() or "DIRTY"
 tblogger = TensorBoardLogger(save_dir="results", name=BRANCH)
